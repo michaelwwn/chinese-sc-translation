@@ -10,11 +10,34 @@ import (
 	"github.com/getlantern/systray/example/icon"
 	"github.com/go-vgo/robotgo"
 	"github.com/liuzl/gocc"
+	"github.com/sevlyar/go-daemon"
 	"golang.design/x/hotkey"
 	"golang.design/x/hotkey/mainthread"
 )
 
 func main() {
+	cntxt := &daemon.Context{
+		PidFileName: "translator.pid",
+		PidFilePerm: 0644,
+		LogFileName: "translator.log",
+		LogFilePerm: 0640,
+		WorkDir:     "./",
+		Umask:       027,
+		Args:        []string{"[go-daemon sample]"},
+	}
+
+	d, err := cntxt.Reborn()
+	if err != nil {
+		log.Fatal("Unable to run: ", err)
+	}
+	if d != nil {
+		return
+	}
+	defer cntxt.Release()
+
+	log.Print("- - - - - - - - - - - - - - -")
+	log.Print("daemon started")
+
 	onExit := func() {
 		now := time.Now()
 		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
@@ -42,7 +65,7 @@ func onReady() {
 			select {
 			case <-mQuit.ClickedCh:
 				systray.Quit()
-				fmt.Println("Quit now...")
+				log.Print("daemon exited")
 				return
 			}
 		}
